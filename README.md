@@ -1,1 +1,1 @@
-# Self-conditioning-Generative-Models
+# Self-conditioning Generative Models
