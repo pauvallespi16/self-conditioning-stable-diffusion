@@ -5,8 +5,13 @@ from torch.utils.data import Dataset
 
 
 class CustomDataset(Dataset):
-    def __init__(self, img_dir: Path, device: str, transform=None):
-        self.img_paths = sorted(list(img_dir.glob("*")))
+    def __init__(
+        self, img_dir: Path, device: str, transform=None, num_images: int = 100
+    ):
+        images = list(img_dir.glob("*.jpg"))
+        if num_images == -1:
+            num_images = len(images)
+        self.img_paths = images[:num_images]
         self.transform = transform
         self.device = device
 
