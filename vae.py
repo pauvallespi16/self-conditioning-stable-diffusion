@@ -56,7 +56,6 @@ def main():
     batch_images = torch.stack(images)
 
     activations = []
-
     def hook_fn(module, input, output):
         activations.append(output)
 
