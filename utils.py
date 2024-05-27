@@ -1,25 +1,22 @@
 from pathlib import Path
-from typing import Union
+from typing import Tuple
 
-import torch
 import torchvision.transforms as transforms
-from PIL import Image
 
 IMAGES_PATH = Path("images")
 
-INPUT_IMAGES_PATH = IMAGES_PATH / "input"
+CAT_IMAGES_PATH = IMAGES_PATH / "cats"
+DOG_IMAGES_PATH = IMAGES_PATH / "dogs"
+
 OUTPUT_IMAGES_PATH = IMAGES_PATH / "output"
 
-CAT_IMAGES_PATH = INPUT_IMAGES_PATH / "cats"
-DOG_IMAGES_PATH = INPUT_IMAGES_PATH / "dogs"
 
-
-def load_image(
-    image_path: Path, transforms: transforms = None
-) -> Union[Image.Image, torch.Tensor]:
-    image = Image.open(image_path)
-
-    if transforms:
-        image = transforms(image)
-
-    return image
+def get_transforms() -> Tuple[transforms.Compose, transforms.Compose]:
+    input_transform = transforms.Compose(
+        [
+            transforms.Resize((224, 224)),  # If batch, this is necessary
+            transforms.ToTensor(),
+        ]
+    )
+    output_transform = transforms.ToPILImage()
+    return input_transform, output_transform
