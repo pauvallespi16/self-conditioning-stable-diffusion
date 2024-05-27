@@ -1,3 +1,4 @@
+import os
 import torch
 import torchvision.transforms as transforms
 from diffusers import AutoencoderKL
@@ -9,8 +10,7 @@ from utils import *
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 MODEL_NAME = "stabilityai/sdxl-vae"
 LAYER_NAME = "decoder.mid_block.resnets.0.conv2"
-
-SAVE_OUTPUT_IMAGES = False
+SAVE_OUTPUT_IMAGES = True
 
 
 class VariationalAutoencoderWrapper:
@@ -26,6 +26,8 @@ class VariationalAutoencoderWrapper:
         self.save_output_images = save_output_images
         self.save_activations_file = save_activations_file
         self.activations = []
+        if self.save_output_images:
+            os.makedirs(OUTPUT_IMAGES_PATH, exist_ok=True)
 
     def encode_img(self, input_img: torch.Tensor) -> torch.Tensor:
         # Single image -> single latent in a batch (so size 1, 4, 64, 64)
@@ -82,7 +84,7 @@ class VariationalAutoencoderWrapper:
                 }
             )
 
-            if SAVE_OUTPUT_IMAGES:
+            if self.save_output_images:
                 self.save_reconstructed_images(
                     decoded_images, image_names, output_transform
                 )
@@ -95,7 +97,7 @@ class VariationalAutoencoderWrapper:
 
 def main():
     dataset = CustomDataset(
-        DOG_IMAGES_PATH, device=DEVICE, transform=get_transforms(), num_images=5
+        CAT_IMAGES_PATH, device=DEVICE, transform=get_transforms(), num_images=5
     )
     dataloader = DataLoader(dataset, batch_size=8, shuffle=False)
 
@@ -103,7 +105,7 @@ def main():
         model_name=MODEL_NAME,
         device=DEVICE,
         save_output_images=SAVE_OUTPUT_IMAGES,
-        save_activations_file=OUTPUT_PATH / "dog_activations.pkl",
+        save_activations_file=OUTPUT_PATH / "cat_activations.pkl",
     )
 
     vae.register_hook(LAYER_NAME)
