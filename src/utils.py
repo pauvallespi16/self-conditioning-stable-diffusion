@@ -1,17 +1,19 @@
 import pickle
 from functools import reduce
 from pathlib import Path
-from typing import Tuple
 
 import torchvision.transforms as transforms
 
+# Path constants
 OUTPUT_PATH = Path("output")
 IMAGES_PATH = Path("images")
-
 CAT_IMAGES_PATH = IMAGES_PATH / "cats"
 DOG_IMAGES_PATH = IMAGES_PATH / "dogs"
-
 OUTPUT_IMAGES_PATH = IMAGES_PATH / "output"
+
+# String constants
+TWEAKING_STRING = "Tweaking model activations..."
+GENERATION_STRING = "Generating activations..."
 
 
 def get_transforms() -> transforms.Compose:
