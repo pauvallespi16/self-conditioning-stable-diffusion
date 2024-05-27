@@ -78,6 +78,57 @@ class VariationalAutoencoderWrapper(ModelWrapper):
         image = image.detach()
         return image
 
+    def generation_hook(self, *args):
+        """
+        Returns a hook function for the generation process.
+
+        Args:
+            *args: Additional arguments.
+
+        Returns:
+            Callable: The hook function.
+
+        """
+
+        def hook_fn(m, i, o):
+            module = self.module_to_name[m]
+            if module not in self.activations:
+                self.activations[module] = []
+
+            for i in range(o.shape[0]):
+                output = (
+                    o[i].detach().numpy()
+                    if self.device == "cpu"
+                    else o[i].detach().cpu().numpy()
+                )
+                self.activations[module].append(output)
+
+        return hook_fn
+
+    def evaluation_hook(self, *args):
+        """
+        Returns a hook function for the evaluation process.
+
+        Args:
+            *args: Additional arguments.
+
+        Returns:
+            Callable: The hook function.
+
+        """
+        agg_activations = args[0]
+
+        def hook_fn(m, i, o):
+            median_tensor = torch.from_numpy(
+                agg_activations[self.module_to_name[m]]
+            ).to(self.device)
+            output = median_tensor.repeat(o.size(0), 1, 1, 1)
+            noise = torch.randn_like(output) * 100  # Add small random noise
+            output += noise
+            return output
+
+        return hook_fn
+
     def generate_activations(self, dataloader: DataLoader) -> Dict[str, List[float]]:
         """
         Generate activations for each layer in the VAE model.
