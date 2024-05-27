@@ -65,7 +65,7 @@ def main():
         save_activations_file=OUTPUT_PATH / "dog_activations.pkl",
     )
 
-    sd.register_hook(LAYER_NAME)
+    sd.register_hook(sd.sd, LAYER_NAME)
     sd.generate_activations(dataloader)
 
 

@@ -76,7 +76,7 @@ class VariationalAutoencoderWrapper(ModelWrapper):
 
 def main():
     dataset = CustomDataset(
-        DOG_IMAGES_PATH, device=DEVICE, transform=get_transforms(), num_images=5
+        DOG_IMAGES_PATH, device=DEVICE, transform=get_transforms(), num_images=50
     )
     dataloader = DataLoader(dataset, batch_size=8, shuffle=False)
 
@@ -87,7 +87,7 @@ def main():
         save_activations_file=OUTPUT_PATH / "dog_activations.pkl",
     )
 
-    vae.register_hook(LAYER_NAME)
+    vae.register_hook(vae.vae, LAYER_NAME)
     vae.generate_activations(dataloader)
 
 

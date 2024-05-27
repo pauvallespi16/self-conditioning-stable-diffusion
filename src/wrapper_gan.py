@@ -65,7 +65,7 @@ def main():
         save_activations_file=OUTPUT_PATH / "dog_activations.pkl",
     )
 
-    gan.register_hook(LAYER_NAME)
+    gan.register_hook(gan.gan, LAYER_NAME)
     gan.generate_activations(dataloader)
 
 

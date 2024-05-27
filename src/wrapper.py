@@ -22,11 +22,11 @@ class ModelWrapper:
         if self.save_output_images:
             os.makedirs(OUTPUT_IMAGES_PATH, exist_ok=True)
 
-    def register_hook(self, layer_name: str):
+    def register_hook(self, model: torch.nn.Module, layer_name: str):
         hook_fn = lambda module, input, output: self.activations.append(
             output.cpu().numpy()
         )
-        module = get_module_by_name(self.vae, layer_name)
+        module = get_module_by_name(model, layer_name)
         module.register_forward_hook(hook_fn)
 
     def generate_activations(self, dataloader: DataLoader) -> Dict[str, List[float]]:
