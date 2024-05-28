@@ -21,17 +21,9 @@ class ModelWrapper:
     Args:
         model_name (str): The name of the model.
         device (str): The device to run the model on (e.g., "cpu", "cuda").
+        process (Process): The process to run (e.g., Process.GENERATION, Process.EVALUATION)
         save_output_images (bool, optional): Whether to save output images. Defaults to False.
         save_activations_file (str, optional): The file path to save the activations. Defaults to None.
-
-    Attributes:
-        model_name (str): The name of the model.
-        device (str): The device to run the model on.
-        save_output_images (bool): Whether to save output images.
-        save_activations_file (str): The file path to save the activations.
-        activations (Dict[str, List[float]]): A dictionary to store the activations of each module.
-        module_to_name (Dict[torch.nn.Module, str]): A dictionary to map modules to their names.
-        process_to_hook (Dict[Process, Callable]): A dictionary to map processes to their hook functions.
 
     Methods:
         generation_hook: A hook function for the generation process.
@@ -46,11 +38,13 @@ class ModelWrapper:
         self,
         model_name: str,
         device: str,
+        process: Process,
         save_output_images: bool = False,
         save_activations_file: str = None,
     ):
         self.model_name = model_name
         self.device = device
+        self.process = process
         self.save_output_images = save_output_images
         self.save_activations_file = save_activations_file
         self.activations = {}
@@ -91,7 +85,6 @@ class ModelWrapper:
         self,
         model: torch.nn.Module,
         layer_name: str,
-        process: Process,
         agg_activations: Dict[str, List[float]] = None,
     ):
         """
@@ -100,11 +93,10 @@ class ModelWrapper:
         Args:
             model (torch.nn.Module): The model to register the hook on.
             layer_name (str): The name of the layer to register the hook on.
-            process (Process): The process to register the hook for.
             agg_activations (Dict[str, List[float]], optional): The aggregated activations. Defaults to None.
 
         """
-        hook_fn = self.process_to_hook[process](agg_activations)
+        hook_fn = self.process_to_hook[self.process](agg_activations)
         module = get_module_by_name(model, layer_name)
         module.register_forward_hook(hook_fn)
 
