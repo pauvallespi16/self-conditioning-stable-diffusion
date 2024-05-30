@@ -15,6 +15,17 @@ OUTPUT_IMAGES_PATH = IMAGES_PATH / "output"
 TWEAKING_STRING = "Tweaking model activations..."
 GENERATION_STRING = "Generating activations..."
 
+# VAE constants
+VAE_MODEL_NAME = "stabilityai/sdxl-vae"
+VAE_LAYER_NAMES = [
+    "decoder.mid_block.resnets.0.conv1",
+    "decoder.mid_block.resnets.0.conv2",
+    "decoder.up_blocks.0.resnets.0.conv1",
+    "decoder.up_blocks.0.resnets.0.conv2",
+    "decoder.up_blocks.1.resnets.1.conv1",
+    "decoder.up_blocks.1.resnets.1.conv2",
+]
+
 
 def get_transforms() -> transforms.Compose:
     """

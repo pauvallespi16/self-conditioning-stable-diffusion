@@ -12,13 +12,8 @@ from utils import *
 from wrapper import ModelWrapper, Process
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-MODEL_NAME = "stabilityai/sdxl-vae"
-LAYER_NAMES = [
-    "decoder.mid_block.resnets.0.conv1",
-    "decoder.mid_block.resnets.0.conv2",
-]
 
-SAVE_OUTPUT_IMAGES = False
+SAVE_OUTPUT_IMAGES = True
 SAVE_ACTIVATIONS_FILE = OUTPUT_PATH / "dog_activations.pkl"
 
 
@@ -28,6 +23,7 @@ class VariationalAutoencoderWrapper(ModelWrapper):
 
     Args:
         model_name (str): Name of the VAE model.
+        layers (List[str]): The names of the layers to register hooks on.
         device (str): Device to run the model on.
         process (Process): The process to run (e.g., Process.GENERATION, Process.EVALUATION)
         save_output_images (bool, optional): Whether to save the output images. Defaults to False.
@@ -37,13 +33,19 @@ class VariationalAutoencoderWrapper(ModelWrapper):
     def __init__(
         self,
         model_name: str,
+        layers: List[str],
         device: str,
         process: Process,
         save_output_images: bool = False,
         save_activations_file: str = None,
     ):
         super().__init__(
-            model_name, device, process, save_output_images, save_activations_file
+            model_name=model_name,
+            layers=layers,
+            device=device,
+            process=process,
+            save_output_images=save_output_images,
+            save_activations_file=save_activations_file,
         )
         self.vae = AutoencoderKL.from_pretrained(self.model_name).to(self.device)
         self.vae.eval()
@@ -97,18 +99,18 @@ class VariationalAutoencoderWrapper(ModelWrapper):
 
         """
 
-        def hook_fn(m, i, o):
-            module = self.module_to_name[m]
+        def hook_fn(module, input, output):
+            module = self.module_to_name[module]
             if module not in self.activations:
                 self.activations[module] = []
 
-            for i in range(o.shape[0]):
-                output = (
-                    o[i].detach().numpy()
+            for i in range(output.shape[0]):
+                out = (
+                    output[i].detach().numpy()
                     if self.device == "cpu"
-                    else o[i].detach().cpu().numpy()
+                    else output[i].detach().cpu().numpy()
                 )
-                self.activations[module].append(output)
+                self.activations[module].append(out)
 
         return hook_fn
 
@@ -124,27 +126,26 @@ class VariationalAutoencoderWrapper(ModelWrapper):
 
         """
         agg_activations = args[0]
+        units = args[1] if len(args) > 1 and args[1] else slice(None)
 
-        def hook_fn(m, i, o):
-            agg_activations_tensor = torch.from_numpy(
-                agg_activations[self.module_to_name[m]]
-            ).to(self.device)
-            output = agg_activations_tensor.repeat(o.size(0), 1, 1, 1)
-            noise = torch.randn_like(output) * 100  # Add small random noise
-            output += noise
+        def hook_fn(module, input, output):
+            module_name = self.module_to_name[module]
+            agg_activations_tensor = torch.from_numpy(agg_activations[module_name])
+            agg_activations_tensor = agg_activations_tensor.to(self.device)
+            output[:, :, :, units] = agg_activations_tensor[:, :, units]
             return output
 
         return hook_fn
 
-    def generate_activations(self, dataloader: DataLoader) -> Dict[str, List[float]]:
+    def run(self, dataloader: DataLoader) -> Dict[str, Dict[str, List[float]]]:
         """
-        Generate activations for each layer in the VAE model.
+        Generates or modifies activations for each layer in the VAE model.
 
         Args:
             dataloader (DataLoader): DataLoader for the dataset.
 
         Returns:
-            Dict[str, List[float]]: Dictionary containing the activations for each layer.
+            Dict[str, Dict[str, List[float]]]: Dictionary containing the activations for each layer.
                 The struct of the result dictionary is:
                     activations_dict = {
                         "layer1": {
@@ -159,7 +160,7 @@ class VariationalAutoencoderWrapper(ModelWrapper):
                         }
 
         """
-        activations_dict = {layer: {} for layer in LAYER_NAMES}
+        activations_dict = {layer: {} for layer in self.layers}
         output_transform = transforms.ToPILImage()
         desc = (
             GENERATION_STRING if self.process == Process.GENERATION else TWEAKING_STRING
@@ -191,30 +192,30 @@ class VariationalAutoencoderWrapper(ModelWrapper):
         return activations_dict
 
 
-def generate():
+def generate() -> Dict[str, Dict[str, List[float]]]:
     """
     Generate activations for the VAE model.
     """
     dataset = CustomDataset(
-        DOG_IMAGES_PATH, device=DEVICE, transform=get_transforms(), num_images=500
+        DOG_IMAGES_PATH, device=DEVICE, transform=get_transforms(), num_images=200
     )
     dataloader = DataLoader(dataset, batch_size=8, shuffle=False)
 
     vae = VariationalAutoencoderWrapper(
-        model_name=MODEL_NAME,
+        model_name=VAE_MODEL_NAME,
+        layers=VAE_LAYER_NAMES,
         device=DEVICE,
         process=Process.GENERATION,
         # save_activations_file=SAVE_ACTIVATIONS_FILE,
     )
 
-    for layer in LAYER_NAMES:
-        vae.register_hook(vae.vae, layer)
-    activations = vae.generate_activations(dataloader)
+    vae.register_hooks(vae.vae)
+    activations = vae.run(dataloader)
 
     return activations
 
 
-def evaluate(activations: Dict[str, List[float]] = None):
+def evaluate(activations: Dict[str, Dict[str, List[float]]] = None):
     """
     Evaluate the VAE model using pre-generated activations.
     """
@@ -227,20 +228,21 @@ def evaluate(activations: Dict[str, List[float]] = None):
     dataloader = DataLoader(dataset, batch_size=8, shuffle=False)
 
     vae = VariationalAutoencoderWrapper(
-        model_name=MODEL_NAME,
+        model_name=VAE_MODEL_NAME,
+        layers=VAE_LAYER_NAMES,
         device=DEVICE,
         process=Process.EVALUATION,
         save_output_images=SAVE_OUTPUT_IMAGES,
     )
-
+    
     agg_activations = {
         module: np.median(list(acts.values()), axis=0)
-        for module, acts in activations.items()
+        for module, acts in tqdm(activations.items(), desc="Aggregating activations")
     }
+    units = slice(0, 14)
 
-    for layer in LAYER_NAMES:
-        vae.register_hook(vae.vae, layer, agg_activations=agg_activations)
-    vae.generate_activations(dataloader)
+    vae.register_hooks(vae.vae, agg_activations)
+    vae.run(dataloader)
 
 
 if __name__ == "__main__":
