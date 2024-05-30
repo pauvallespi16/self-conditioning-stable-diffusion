@@ -100,9 +100,9 @@ class VariationalAutoencoderWrapper(ModelWrapper):
         """
 
         def hook_fn(module, input, output):
-            module = self.module_to_name[module]
-            if module not in self.activations:
-                self.activations[module] = []
+            module_name = self.module_to_name[module]
+            if module_name not in self.activations:
+                self.activations[module_name] = []
 
             for i in range(output.shape[0]):
                 out = (
@@ -110,7 +110,7 @@ class VariationalAutoencoderWrapper(ModelWrapper):
                     if self.device == "cpu"
                     else output[i].detach().cpu().numpy()
                 )
-                self.activations[module].append(out)
+                self.activations[module_name].append(out)
 
         return hook_fn
 
@@ -197,7 +197,7 @@ def generate() -> Dict[str, Dict[str, List[float]]]:
     Generate activations for the VAE model.
     """
     dataset = CustomDataset(
-        DOG_IMAGES_PATH, device=DEVICE, transform=get_transforms(), num_images=200
+        DOG_IMAGES_PATH, device=DEVICE, transform=get_transforms(), num_images=100
     )
     dataloader = DataLoader(dataset, batch_size=8, shuffle=False)
 
@@ -223,7 +223,7 @@ def evaluate(activations: Dict[str, Dict[str, List[float]]] = None):
         activations = load_pickle(SAVE_ACTIVATIONS_FILE)
 
     dataset = CustomDataset(
-        CAT_IMAGES_PATH, device=DEVICE, transform=get_transforms(), num_images=10
+        CAT_IMAGES_PATH, device=DEVICE, transform=get_transforms(), num_images=30
     )
     dataloader = DataLoader(dataset, batch_size=8, shuffle=False)
 
