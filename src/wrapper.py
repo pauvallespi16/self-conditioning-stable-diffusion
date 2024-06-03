@@ -1,12 +1,13 @@
 import os
 from enum import Enum
+from pathlib import Path
 from typing import Dict, List
 
 import torch
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 
-from utils import OUTPUT_IMAGES_PATH, get_module_by_name
+from utils import get_module_by_name
 
 
 class Process(Enum):
@@ -23,8 +24,7 @@ class ModelWrapper:
         layers (List[str]): The names of the layers to register hooks on.
         device (str): The device to run the model on (e.g., "cpu", "cuda").
         process (Process): The process to run (e.g., Process.GENERATION, Process.EVALUATION)
-        save_output_images (bool, optional): Whether to save output images. Defaults to False.
-        save_activations_file (str, optional): The file path to save the activations. Defaults to None.
+        output_images_folder (Path, optional): The folder to save output images. Defaults to None.
 
     Methods:
         generation_hook: A hook function for the generation process.
@@ -40,23 +40,21 @@ class ModelWrapper:
         layers: List[str],
         device: str,
         process: Process,
-        save_output_images: bool = False,
-        save_activations_file: str = None,
+        output_images_folder: Path = None,
     ):
         self.model_name = model_name
         self.layers = layers
         self.device = device
         self.process = process
-        self.save_output_images = save_output_images
-        self.save_activations_file = save_activations_file
+        self.output_images_folder = output_images_folder
         self.activations = {}
         self.module_to_name = {}
         self.process_to_hook = {
             Process.GENERATION: self.generation_hook,
             Process.EVALUATION: self.evaluation_hook,
         }
-        if self.save_output_images:
-            os.makedirs(OUTPUT_IMAGES_PATH, exist_ok=True)
+        if self.output_images_folder:
+            os.makedirs(output_images_folder, exist_ok=True)
 
     def generation_hook(self, *args):
         """
@@ -125,10 +123,9 @@ class ModelWrapper:
             reconstructed_images (torch.Tensor): The reconstructed images.
             image_names (List[str]): The names of the images.
             output_transform (transforms.Compose): The transformation to apply to the output images.
-
         """
         for i, image in enumerate(reconstructed_images):
             output_image = output_transform(image)
             output_image.save(
-                OUTPUT_IMAGES_PATH / f"reconstructed_{image_names[i]}.jpg"
+                self.output_images_folder / f"reconstructed_{image_names[i]}.jpg"
             )

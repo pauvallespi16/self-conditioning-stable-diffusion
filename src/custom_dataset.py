@@ -19,10 +19,6 @@ class CustomDataset(Dataset):
         transform (callable): The transform function to apply to the images.
         device (str): The device used for image processing.
 
-    Methods:
-        __len__(): Returns the total number of images in the dataset.
-        __getitem__(idx): Returns the image and its corresponding name at the given index.
-
     """
 
     def __init__(
