@@ -18,11 +18,11 @@ GENERATION_STRING = "Generating activations..."
 VAE_MODEL_NAME = "stabilityai/sdxl-vae"
 VAE_LAYER_NAMES = [
     "decoder.mid_block.resnets.0.conv1",
-    # "decoder.mid_block.resnets.0.conv2",
-    # "decoder.up_blocks.0.resnets.0.conv1",
-    # "decoder.up_blocks.0.resnets.0.conv2",
-    # "decoder.up_blocks.1.resnets.1.conv1",
-    # "decoder.up_blocks.1.resnets.1.conv2",
+    "decoder.mid_block.resnets.0.conv2",
+    "decoder.up_blocks.0.resnets.0.conv1",
+    "decoder.up_blocks.0.resnets.0.conv2",
+    "decoder.up_blocks.1.resnets.1.conv1",
+    "decoder.up_blocks.1.resnets.1.conv2",
 ]
 
 # SD constants

@@ -40,9 +40,7 @@ def generate(
 
     """
     torch.manual_seed(42)
-    dataset = CustomDataset(
-        dataset_path, device=DEVICE, transform=get_transforms(), num_images=1
-    )
+    dataset = CustomDataset(dataset_path, device=DEVICE, transform=get_transforms())
     dataloader = DataLoader(dataset, batch_size=8, shuffle=True)
 
     # TODO: Adapt to new models

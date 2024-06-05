@@ -2,6 +2,7 @@ from pathlib import Path
 
 from PIL import Image
 from torch.utils.data import Dataset
+from torchvision import transforms
 
 
 class CustomDataset(Dataset):
@@ -11,21 +12,20 @@ class CustomDataset(Dataset):
     Args:
         img_dir (Path): The directory containing the image files.
         device (str): The device to use for image processing.
-        transform (callable, optional): A function/transform to apply to the images. Default is None.
+        transform (transforms.Compose, optional): A transform to apply to the images. Default is None.
         num_images (int, optional): The number of images to load. Default is 100. If -1 is pased, all images are used.
-
-    Attributes:
-        img_paths (list): A list of image file paths.
-        transform (callable): The transform function to apply to the images.
-        device (str): The device used for image processing.
 
     """
 
     def __init__(
-        self, img_dir: Path, device: str, transform=None, num_images: int = 100
+        self,
+        img_dir: Path,
+        device: str,
+        transform: transforms.Compose = None,
+        num_images: int = None,
     ):
         images = list(img_dir.glob("*.jpg"))
-        if num_images == -1:
+        if not num_images:
             num_images = len(images)
         self.img_paths = images[:num_images]
         self.transform = transform
