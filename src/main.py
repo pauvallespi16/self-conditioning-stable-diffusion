@@ -13,8 +13,6 @@ from wrapper_vae import VariationalAutoencoderWrapper
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-SAVE_OUTPUT_IMAGES = False
-
 DATASET_PATH = Path("images")
 
 CAT_DATASET_PATH = DATASET_PATH / "cats"
