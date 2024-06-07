@@ -20,7 +20,6 @@ class VariationalAutoencoderWrapper(ModelWrapper):
         device (str): Device to run the model on.
         process (Process): The process to run (e.g., Process.GENERATION, Process.EVALUATION)
         output_images_folder (Path, optional): Folder to save output images. Defaults to None.
-
     """
 
     def __init__(
@@ -92,14 +91,6 @@ class VariationalAutoencoderWrapper(ModelWrapper):
         """
 
         def hook_fn(module, input, output):
-            """
-            Hook function to store the activations of each layer during the generation process.
-
-            Args:
-                module (torch.nn.Module): The module being hooked.
-                input (torch.Tensor): The input tensor to the module.
-                output (torch.Tensor): The output tensor from the module.
-            """
             module_name = self.module_to_name[module]
             if module_name not in self.activations:
                 self.activations[module_name] = []
@@ -126,25 +117,26 @@ class VariationalAutoencoderWrapper(ModelWrapper):
 
         """
         agg_activations = args[0]
-        units = args[1] if len(args) > 1 and args[1] else slice(None)
+        layer_scores = args[1]
+        threshold = args[2] if len(args) > 2 else 0
 
         def hook_fn(module, input, output):
-            """
-            Hook function to modify the activations of each layer during the evaluation process.
-
-            Args:
-                module (torch.nn.Module): The module being hooked.
-                input (torch.Tensor): The input tensor to the module.
-                output (torch.Tensor): The output tensor from the module.
-
-            Returns:
-                torch.Tensor: The modified output tensor.
-            """
+            # other class
             module_name = self.module_to_name[module]
-            agg_activations_tensor = torch.from_numpy(agg_activations[module_name])
-            agg_activations_tensor = agg_activations_tensor.to(self.device)
-            # TODO: Change this to use binary masks instead of units
-            output[:, :, :, units] = agg_activations_tensor[:, :, units]
+            class0_agg_activations = torch.tensor(
+                agg_activations[module_name][0],
+                device=output.device,
+                dtype=output.dtype,
+            )
+            # dog class
+            class1_agg_activations = torch.tensor(
+                agg_activations[module_name][1],
+                device=output.device,
+                dtype=output.dtype,
+            )
+            mask = layer_scores[module_name] > threshold*layer_scores[module_name].max()
+            output[:, mask] -= class0_agg_activations[mask]
+            output[:, mask] += class1_agg_activations[mask]
             return output
 
         return hook_fn
@@ -175,7 +167,9 @@ class VariationalAutoencoderWrapper(ModelWrapper):
         activations_dict = {layer: {} for layer in self.layers}
         output_transform = transforms.ToPILImage()
         desc = (
-            GENERATION_STRING if self.process == Process.GENERATION else TWEAKING_STRING
+            GENERATION_STRING
+            if self.process == Process.GENERATION
+            else EVALUATION_STRING
         )
 
         for image_names, batch_images in tqdm(dataloader, desc=desc):

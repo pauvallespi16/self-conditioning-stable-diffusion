@@ -165,5 +165,5 @@ cython_debug/
 # Project
 images/*
 logs
-output
+pickles
 *.sh
