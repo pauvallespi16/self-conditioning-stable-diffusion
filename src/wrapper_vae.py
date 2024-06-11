@@ -134,7 +134,9 @@ class VariationalAutoencoderWrapper(ModelWrapper):
                 device=output.device,
                 dtype=output.dtype,
             )
-            mask = layer_scores[module_name] > threshold*layer_scores[module_name].max()
+            mask = (
+                layer_scores[module_name] > threshold * layer_scores[module_name].max()
+            )
             output[:, mask] -= class0_agg_activations[mask]
             output[:, mask] += class1_agg_activations[mask]
             return output

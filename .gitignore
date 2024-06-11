@@ -167,3 +167,4 @@ images/*
 logs
 pickles
 *.sh
+plots

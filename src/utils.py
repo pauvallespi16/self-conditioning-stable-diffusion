@@ -61,7 +61,7 @@ def load_pickle(file_path: Path) -> object:
     Returns:
         object: The object stored in the pickle file.
     """
-    if isinstance(file_path, Path):
+    if isinstance(file_path, Path) or isinstance(file_path, str):
         with open(file_path, "rb") as f:
             return pickle.load(f)
 

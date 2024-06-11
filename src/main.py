@@ -50,7 +50,6 @@ def generate(
         evaluate_dataset_path,
         device=DEVICE,
         transform=get_transforms(),
-        num_images=5
     )
     dataloader = DataLoader(dataset, batch_size=8, shuffle=True)
 
@@ -93,7 +92,7 @@ def evaluate(
     layer_scores = load_pickle(layer_scores)
 
     dataset = CustomDataset(
-        dataset_path, device=DEVICE, transform=get_transforms(), num_images=10
+        dataset_path, device=DEVICE, transform=get_transforms(), num_images=3
     )
     dataloader = DataLoader(dataset, batch_size=8, shuffle=False)
 
