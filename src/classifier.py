@@ -26,7 +26,7 @@ class CLIPClassifier:
         device: str,
         save_plot_path: Path = None,
     ):
-        self.model, self.preprocess = clip.load(model_name, device=DEVICE)
+        self.model, self.preprocess = clip.load(model_name, device=device)
         self.target_classes = target_classes
         self.device = device
         self.save_plot_path = save_plot_path
