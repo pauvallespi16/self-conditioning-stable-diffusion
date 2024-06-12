@@ -21,12 +21,13 @@ EVALUATION_STRING = "Tweaking model activations..."
 # VAE constants
 VAE_MODEL_NAME = "stabilityai/sdxl-vae"
 VAE_LAYER_NAMES = [
-    # "decoder.up_blocks.0.resnets.0.conv1",
-    # "decoder.up_blocks.0.resnets.0.conv2",
-    # "decoder.up_blocks.3.resnets.0.conv1",
-    # "decoder.up_blocks.3.resnets.0.conv2",
-    "decoder.up_blocks.3.resnets.2.conv1",
-    "decoder.up_blocks.3.resnets.2.conv2",
+    "decoder.conv_in"
+    "decoder.mid_block.resnets.0.norm1",
+    "decoder.mid_block.resnets.0.norm2",
+    "decoder.mid_block.resnets.1.norm1",
+    "decoder.mid_block.resnets.1.norm2",
+    "decoder.up_blocks.0.upsamplers.0.conv",
+    "decoder.up_blocks.1.upsamplers.0.conv",
     "decoder.mid_block.resnets.1.conv1",
     "decoder.mid_block.resnets.1.conv2",
 ]

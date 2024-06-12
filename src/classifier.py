@@ -10,6 +10,7 @@ from PIL import Image
 
 random.seed(42)
 
+MODEL_NAME = "ViT-B/32"
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 TARGET_CLASSES = ["dog", "human"]
 
@@ -26,6 +27,16 @@ class CLIPClassifier:
         device: str,
         save_plot_path: Path = None,
     ):
+        """
+        Initialize the Classifier object.
+
+        Args:
+            model_name (str): The name of the CLIP model to load.
+            images_path (List[Path]): A list of paths to the images to classify.
+            target_classes (List[str]): A list of target classes for classification.
+            device (str): The device to use for inference (e.g., 'cpu', 'cuda').
+            save_plot_path (Path, optional): The path to save the classification plot. Defaults to None.
+        """
         self.model, self.preprocess = clip.load(model_name, device=device)
         self.target_classes = target_classes
         self.device = device
@@ -37,12 +48,24 @@ class CLIPClassifier:
         ), "No images loaded."
 
     def __load_images(self, images_path: str):
+        """
+        Load and preprocess the images.
+
+        Args:
+            images_path (str): The path to the images.
+        """
         for image in images_path:
             image = Image.open(image).convert("RGB")
             self.images.append(image)
             self.image_embeddings.append(self.preprocess(image))
 
     def encode_images(self) -> torch.Tensor:
+        """
+        Encode the images using the CLIP model.
+
+        Returns:
+            torch.Tensor: The encoded image features.
+        """
         with torch.no_grad():
             image_input = torch.tensor(np.stack(self.image_embeddings)).to(self.device)
             image_features = self.model.encode_image(image_input).float()
@@ -51,6 +74,12 @@ class CLIPClassifier:
         return image_features
 
     def encode_texts(self) -> torch.Tensor:
+        """
+        Encode the target classes as text using the CLIP model.
+
+        Returns:
+            torch.Tensor: The encoded text features.
+        """
         with torch.no_grad():
             text_descriptions = [
                 f"This is a photo of a {label}" for label in self.target_classes
@@ -62,6 +91,12 @@ class CLIPClassifier:
         return text_features
 
     def run(self) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Run the classification process.
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: A tuple containing the top probabilities and labels for each image.
+        """
         image_features = self.encode_images()
         text_features = self.encode_texts()
 
@@ -73,7 +108,17 @@ class CLIPClassifier:
 
         return top_probs, top_labels
 
-    def plot_results(self, images: List, top_probs: np.ndarray, top_labels: np.ndarray):
+    def plot_results(
+        self, images: List[Image.Image], top_probs: np.ndarray, top_labels: np.ndarray
+    ):
+        """
+        Plot the classification results.
+
+        Args:
+            images (List): A list of images to plot.
+            top_probs (np.ndarray): The top probabilities for each image.
+            top_labels (np.ndarray): The top labels for each image.
+        """
         plt.figure(figsize=(16, 16))
 
         for i, image in enumerate(images):
@@ -99,17 +144,16 @@ class CLIPClassifier:
 
 
 if __name__ == "__main__":
-    model_name = "ViT-B/32"
-
     dog_images_paths = list(DOG_IMAGES_PATH.glob("*"))
     other_images_paths = list(OTHER_IMAGES_PATH.glob("*"))
     reconstructed_images_path = list(Path("images/output").glob("*"))
+
     images_path = dog_images_paths + other_images_paths + reconstructed_images_path
     random.shuffle(images_path)
 
     images_path = images_path[:8]
 
     clip_classifier = CLIPClassifier(
-        model_name, images_path, TARGET_CLASSES, DEVICE, Path("plots/clip_results.png")
+        MODEL_NAME, images_path, TARGET_CLASSES, DEVICE, Path("plots/clip_results.png")
     )
     clip_classifier.run()

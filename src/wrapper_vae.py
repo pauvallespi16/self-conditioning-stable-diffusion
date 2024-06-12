@@ -118,7 +118,7 @@ class VariationalAutoencoderWrapper(ModelWrapper):
         """
         agg_activations = args[0]
         layer_scores = args[1]
-        threshold = args[2] if len(args) > 2 else 0
+        threshold = args[2] if len(args) > 2 else 0.75
 
         def hook_fn(module, input, output):
             # other class
@@ -187,7 +187,7 @@ class VariationalAutoencoderWrapper(ModelWrapper):
                         }
                     )
 
-            if self.output_images_folder:
+            if self.process == Process.EVALUATION and self.output_images_folder:
                 self.save_reconstructed_images(
                     reconstructed_images, image_names, output_transform
                 )
