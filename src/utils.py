@@ -9,6 +9,7 @@ from typing import Dict, List, Tuple
 import numpy as np
 import torch
 import torchvision.transforms as transforms
+from PIL import Image
 from sklearn.metrics import average_precision_score, roc_auc_score
 from tqdm import tqdm
 
@@ -21,13 +22,15 @@ EVALUATION_STRING = "Tweaking model activations..."
 # VAE constants
 VAE_MODEL_NAME = "stabilityai/sdxl-vae"
 VAE_LAYER_NAMES = [
-    "decoder.conv_in"
+    "decoder.conv_in",
     "decoder.mid_block.resnets.0.norm1",
     "decoder.mid_block.resnets.0.norm2",
     "decoder.mid_block.resnets.1.norm1",
     "decoder.mid_block.resnets.1.norm2",
     "decoder.up_blocks.0.upsamplers.0.conv",
     "decoder.up_blocks.1.upsamplers.0.conv",
+    "decoder.mid_block.resnets.0.conv1",
+    "decoder.mid_block.resnets.0.conv2",
     "decoder.mid_block.resnets.1.conv1",
     "decoder.mid_block.resnets.1.conv2",
 ]
@@ -262,3 +265,19 @@ def compute_auroc(
         aurocs[layer] = auroc
 
     return aurocs
+
+
+def load_images(path: Path, transform: transforms.Compose) -> torch.Tensor:
+    """
+    Load images from the given path and apply the specified transformation.
+
+    Args:
+        path (str): The path to the image files.
+        transform (torchvision.transforms.Compose): The transformation to apply to the images.
+
+    Returns:
+        torch.Tensor: A tensor containing the loaded and transformed images.
+    """
+    image_files = path.glob("*")
+    images = [transform(Image.open(file).convert("RGB")) for file in image_files]
+    return torch.stack(images)
