@@ -5,6 +5,7 @@ from typing import Dict, List
 
 import torch
 import torchvision.transforms as transforms
+from PIL import Image
 from torch.utils.data import DataLoader
 
 from utils import get_module_by_name
@@ -97,35 +98,33 @@ class ModelWrapper:
             module.register_forward_hook(hook_fn)
             self.module_to_name.update({module: layer})
 
-    def run(self, dataloader: DataLoader) -> Dict[str, Dict[str, List[float]]]:
+    def generation(self, dataloader: DataLoader) -> Dict[str, Dict[str, List[float]]]:
         """
-        Generates or modifies activations for a given dataloader.
+        Generates activations for each layer in the model.
 
         Args:
             dataloader (DataLoader): DataLoader for the dataset.
 
         Returns:
-            Dict[str, Dict[str, List[float]]]: A dictionary containing the activations of each module.
-
+            Dict[str, List[float]]: Dictionary containing the activations for each layer.
         """
         pass
 
-    def save_reconstructed_images(
-        self,
-        reconstructed_images: torch.Tensor,
-        image_names: List[str],
-        output_transform: transforms.Compose,
-    ):
+    def inference(self, dataloader: DataLoader):
+        """
+        Generates images from the data given as input.
+
+        Args:
+            dataloader (DataLoader): DataLoader for the dataset.
+        """
+        pass
+
+    def save_reconstructed_images(self, reconstructed_images: torch.Tensor):
         """
         Saves reconstructed images to disk.
 
         Args:
             reconstructed_images (torch.Tensor): The reconstructed images.
-            image_names (List[str]): The names of the images.
-            output_transform (transforms.Compose): The transformation to apply to the output images.
         """
         for i, image in enumerate(reconstructed_images):
-            output_image = output_transform(image)
-            output_image.save(
-                self.output_images_folder / f"reconstructed_{image_names[i]}.jpg"
-            )
+            image.save(self.output_images_folder / f"output_image_positive_{i}.png")
