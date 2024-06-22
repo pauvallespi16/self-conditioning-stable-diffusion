@@ -105,7 +105,7 @@ class StableDiffusionWrapper(ModelWrapper):
                 dtype=output.dtype,
             )
             mask = layer_scores[module_name] > threshold
-            output[:, :, mask] = 0  #  activations_tensor[mask]
+            output[:, :, mask] = activations_tensor[mask]
             return output
 
         return hook_fn
