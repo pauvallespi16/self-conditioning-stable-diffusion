@@ -1,3 +1,9 @@
+"""
+This file contains functions adapted from the paper "Self-Conditioning Pre-Trained Language Models" by Apple Inc. 
+The functions have been slightly modified for this project.
+For more information, refer to the original repository: https://github.com/apple/ml-selfcond
+"""
+
 from functools import partial
 from itertools import repeat
 from multiprocessing import Pool, cpu_count
