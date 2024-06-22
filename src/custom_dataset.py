@@ -18,7 +18,6 @@ class CustomDataset(Dataset):
         device (str): The device to use for processing the data.
         sentences (list): A list of sentences.
         labels (list): A list of labels.
-
     """
 
     def __init__(self, sentences_path: Path, device: str):
@@ -47,7 +46,6 @@ class CustomMultipleDataset(CustomDataset):
     Attributes:
         sentences (list): A list of sentences from the combined dataset.
         labels (list): A list of labels corresponding to the sentences.
-
     """
 
     def __init__(
