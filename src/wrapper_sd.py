@@ -90,22 +90,13 @@ class StableDiffusionWrapper(ModelWrapper):
             Callable: The hook function.
 
         """
-        activations = args[0]
-        layer_scores = args[1]
-        threshold = args[2] if len(args) > 2 else 0.8
-        for layer in activations.keys():
-            agg_fn = getattr(np, self.aggregation_type)
-            activations[layer] = agg_fn(activations[layer], axis=0)
+        layer_scores = args[0]
+        threshold = args[1] if len(args) > 1 else 0.8
 
         def hook_fn(module, input, output):
             module_name = self.module_to_name[module]
-            activations_tensor = torch.tensor(
-                activations[module_name],
-                device=output.device,
-                dtype=output.dtype,
-            )
             mask = layer_scores[module_name] > threshold
-            output[:, :, mask] = activations_tensor[mask]
+            output[:, :, mask] = 0
             return output
 
         return hook_fn
@@ -298,12 +289,9 @@ class StableDiffusionWrapper(ModelWrapper):
         Args:
             dataloader (DataLoader): DataLoader for the dataset.
         """
-
-        images = []
         desc = EVALUATION_STRING
 
-        for sentences, _ in tqdm(dataloader, desc=desc):
-            output = self.sd(prompt=list(sentences), height=256, width=256)
-            images.extend(output.images)
-
-        self.save_reconstructed_images(images)
+        for prompts, _ in tqdm(dataloader, desc=desc):
+            sentences = list(prompts)
+            output = self.sd(prompt=sentences, height=256, width=256)
+            save_images(self.output_images_folder, output.images, sentences)

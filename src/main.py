@@ -6,7 +6,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from custom_dataset import CustomDataset, CustomMultipleDataset
-from metrics import *
+from metrics import compute_auroc, compute_average_precision
 from utils import *
 from wrapper import Process
 from wrapper_sd import StableDiffusionWrapper
@@ -76,7 +76,7 @@ def evaluate(
         output_images_folder=output_images_folder,
     )
 
-    sd.register_hooks(sd.text_encoder, activations, layer_scores)
+    sd.register_hooks(sd.text_encoder, layer_scores)
     sd.inference(dataloader)
 
 
@@ -93,6 +93,13 @@ def add_args(parser: ArgumentParser):
         default=DATASET_PATH / "negative_sentences.txt",
         help="The path to the dataset without the concept.",
     )
+    parser.add_argument(
+        "--inference_dataset_path",
+        type=Path,
+        default=DATASET_PATH / "positive_sentences.txt",
+        help="The path to the dataset in which to run inference.",
+    )
+
     parser.add_argument(
         "--process",
         type=str,
@@ -141,6 +148,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     positive_dataset_path = args.positive_dataset_path
     negative_dataset_path = args.negative_dataset_path
+    inference_dataset_path = args.inference_dataset_path
     process = args.process
     score_type = args.score_type
     aggregation_type = args.aggregation_type
@@ -158,7 +166,7 @@ if __name__ == "__main__":
             output_layer_scores_path=layer_scores_path,
         )
         evaluate(
-            negative_dataset_path,
+            inference_dataset_path,
             activations=activations,
             layer_scores=layer_scores,
             output_images_folder=output_images_folder,
@@ -176,7 +184,7 @@ if __name__ == "__main__":
 
     elif process == "evaluation":
         evaluate(
-            negative_dataset_path,
+            inference_dataset_path,
             activations=activations_path,
             layer_scores=layer_scores_path,
             output_images_folder=output_images_folder,

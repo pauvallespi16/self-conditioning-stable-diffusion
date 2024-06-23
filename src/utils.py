@@ -1,6 +1,8 @@
 import pickle
 from functools import reduce
 from pathlib import Path
+from PIL.Image import Image
+from typing import List
 
 import torch
 
@@ -9,10 +11,9 @@ GENERATION_STRING = "Generating activations..."
 EVALUATION_STRING = "Generating images..."
 
 SD_MODEL_NAME = "runwayml/stable-diffusion-v1-5"
-SD_LAYERS = ["text_model.encoder.layers.0.layer_norm1"]
-# SD_LAYERS = [
-#     f"text_model.encoder.layers.{i}.layer_norm{j}" for i in range(12) for j in range(1, 3)
-# ]
+SD_LAYERS = [
+    f"text_model.encoder.layers.{i}.layer_norm{j}" for i in range(12) for j in range(1, 3)
+]
 
 
 def load_pickle(file_path: Path) -> object:
@@ -56,3 +57,15 @@ def get_module_by_name(module: torch.nn.Module, access_string: str) -> torch.nn.
     """
     names = access_string.split(sep=".")
     return reduce(getattr, names, module)
+
+def save_images(folder: Path, images: List[Image], sentences: List[str]):
+    """
+    Saves the given images with the given name to disk.
+
+    Args:
+        folder (Path): The folder to save the images to.
+        images (List[Image]): The images to save.
+        sentences (List[Image]): The sentences corresponding to the images.
+    """
+    for i, image in enumerate(images):
+        image.save(folder / f"{sentences[i]}.png")

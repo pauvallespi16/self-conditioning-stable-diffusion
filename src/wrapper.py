@@ -4,8 +4,6 @@ from pathlib import Path
 from typing import Dict, List
 
 import torch
-import torchvision.transforms as transforms
-from PIL import Image
 from torch.utils.data import DataLoader
 
 from utils import get_module_by_name
@@ -118,13 +116,3 @@ class ModelWrapper:
             dataloader (DataLoader): DataLoader for the dataset.
         """
         pass
-
-    def save_reconstructed_images(self, reconstructed_images: torch.Tensor):
-        """
-        Saves reconstructed images to disk.
-
-        Args:
-            reconstructed_images (torch.Tensor): The reconstructed images.
-        """
-        for i, image in enumerate(reconstructed_images):
-            image.save(self.output_images_folder / f"output_image_positive_{i}.png")
