@@ -101,6 +101,55 @@ class StableDiffusionWrapper(ModelWrapper):
 
         return hook_fn
 
+    def _aggregate_activations(
+        self, activations_dict: Dict[str, List[float]]
+    ) -> Dict[str, List[float]]:
+        """
+        Aggregates activations for each layer in the model.
+
+        Args:
+            activations_dict (Dict[str, List[float]]): Given activations.
+
+        Returns:
+            Dict[str, List[float]]: Dictionary containing the aggregated activations for each layer.
+        """
+
+        for layer in self.layers:
+            activations_dict[layer] = np.array(activations_dict[layer])
+            agg_fn = getattr(np, self.aggregation_type)
+            # Shape -> 200 x 768
+            # AP    -> 768 x 200
+            # AUROC -> 200 x 768
+            activations_dict[layer] = agg_fn(activations_dict[layer], axis=1)
+        return activations_dict
+
+    def _remove_too_long_data(
+        self, data: Dict[str, List[float]]
+    ) -> Dict[str, List[float]]:
+        """
+        Removes data that is too long.
+
+        Args:
+            data (Dict[str, List[float]]): The output of the tokenizer.
+
+        Returns:
+            Dict[str, List[float]]: Dictionary without the too long data.
+        """
+
+        remove_idx = []
+        for idx, tokens in enumerate(data["input_ids"]):
+            extra_tokens = 0
+            if len(tokens) > self.sequence_length + extra_tokens:
+                remove_idx.append(idx)
+
+        remove_idx = sorted(remove_idx, reverse=True)
+
+        for key in data.keys():
+            for i in remove_idx:
+                del data[key][i]
+
+        return data
+
     def _pad_indexed_tokens(
         self, indexed_tokens: List[int], min_num_tokens: int
     ) -> List[int]:
@@ -131,7 +180,7 @@ class StableDiffusionWrapper(ModelWrapper):
         pad_tokens: int = max(min_num_tokens - num_effective_tokens, 0)
         return indexed_tokens + [pad_token_id] * pad_tokens
 
-    def preprocess_sequence(
+    def _preprocess_sequence(
         self, text: str, min_num_tokens: int = None
     ) -> Dict[str, List]:
         """
@@ -189,7 +238,7 @@ class StableDiffusionWrapper(ModelWrapper):
             if not isinstance(seq, str):
                 continue
 
-            input_model_seq = self.preprocess_sequence(
+            input_model_seq = self._preprocess_sequence(
                 text=seq,
                 min_num_tokens=min_num_tokens,
             )
@@ -201,55 +250,6 @@ class StableDiffusionWrapper(ModelWrapper):
             input_model[k] = torch.tensor(input_model[k]).to(self.device)
 
         return input_model
-
-    def _remove_too_long_data(
-        self, data: Dict[str, List[float]]
-    ) -> Dict[str, List[float]]:
-        """
-        Removes data that is too long.
-
-        Args:
-            data (Dict[str, List[float]]): The output of the tokenizer.
-
-        Returns:
-            Dict[str, List[float]]: Dictionary without the too long data.
-        """
-
-        remove_idx = []
-        for idx, tokens in enumerate(data["input_ids"]):
-            extra_tokens = 0
-            if len(tokens) > self.sequence_length + extra_tokens:
-                remove_idx.append(idx)
-
-        remove_idx = sorted(remove_idx, reverse=True)
-
-        for key in data.keys():
-            for i in remove_idx:
-                del data[key][i]
-
-        return data
-
-    def _aggregate_activations(
-        self, activations_dict: Dict[str, List[float]]
-    ) -> Dict[str, List[float]]:
-        """
-        Aggregates activations for each layer in the model.
-
-        Args:
-            activations_dict (Dict[str, List[float]]): Given activations.
-
-        Returns:
-            Dict[str, List[float]]: Dictionary containing the aggregated activations for each layer.
-        """
-
-        for layer in self.layers:
-            activations_dict[layer] = np.array(activations_dict[layer])
-            agg_fn = getattr(np, self.aggregation_type)
-            # Shape -> 200 x 768
-            # AP    -> 768 x 200
-            # AUROC -> 200 x 768
-            activations_dict[layer] = agg_fn(activations_dict[layer], axis=1)
-        return activations_dict
 
     def generation(self, dataloader: DataLoader) -> Dict[str, List[float]]:
         """
@@ -293,5 +293,5 @@ class StableDiffusionWrapper(ModelWrapper):
 
         for prompts, _ in tqdm(dataloader, desc=desc):
             sentences = list(prompts)
-            output = self.sd(prompt=sentences, height=256, width=256)
-            save_images(self.output_images_folder, output.images, sentences)
+            output = self.sd(prompt=sentences, height=512, width=512).images
+            save_images(self.output_images_folder, output, sentences)

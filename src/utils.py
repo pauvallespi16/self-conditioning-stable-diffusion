@@ -1,10 +1,10 @@
 import pickle
 from functools import reduce
 from pathlib import Path
-from PIL.Image import Image
-from typing import List
+from typing import List, Tuple
 
 import torch
+from PIL.Image import Image
 
 # String constants
 GENERATION_STRING = "Generating activations..."
@@ -12,8 +12,12 @@ EVALUATION_STRING = "Generating images..."
 
 SD_MODEL_NAME = "runwayml/stable-diffusion-v1-5"
 SD_LAYERS = [
-    f"text_model.encoder.layers.{i}.layer_norm{j}" for i in range(12) for j in range(1, 3)
+    f"text_model.encoder.layers.{i}.layer_norm{j}"
+    for i in range(12)
+    for j in range(1, 3)
 ]
+UPSCALER_MODEL_NAME = "stabilityai/sd-x2-latent-upscaler"
+SUPER_RES_MODEL_NAME = "stabilityai/stable-diffusion-x4-upscaler"
 
 
 def load_pickle(file_path: Path) -> object:
@@ -58,7 +62,13 @@ def get_module_by_name(module: torch.nn.Module, access_string: str) -> torch.nn.
     names = access_string.split(sep=".")
     return reduce(getattr, names, module)
 
-def save_images(folder: Path, images: List[Image], sentences: List[str]):
+
+def save_images(
+    folder: Path,
+    images: List[Image],
+    sentences: List[str],
+    image_size: Tuple[int, int] = (512, 512),
+):
     """
     Saves the given images with the given name to disk.
 
@@ -66,6 +76,8 @@ def save_images(folder: Path, images: List[Image], sentences: List[str]):
         folder (Path): The folder to save the images to.
         images (List[Image]): The images to save.
         sentences (List[Image]): The sentences corresponding to the images.
+        image_size (Tuple[int, int], optional): The size to resize the images to. Defaults to (512, 512).
     """
     for i, image in enumerate(images):
-        image.save(folder / f"{sentences[i]}.png")
+        resized_image = image.resize(image_size)
+        resized_image.save(folder / f"{sentences[i]}.png")

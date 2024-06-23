@@ -99,7 +99,6 @@ def add_args(parser: ArgumentParser):
         default=DATASET_PATH / "positive_sentences.txt",
         help="The path to the dataset in which to run inference.",
     )
-
     parser.add_argument(
         "--process",
         type=str,
