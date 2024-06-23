@@ -16,9 +16,6 @@ SD_LAYERS = [
     for i in range(12)
     for j in range(1, 3)
 ]
-UPSCALER_MODEL_NAME = "stabilityai/sd-x2-latent-upscaler"
-SUPER_RES_MODEL_NAME = "stabilityai/stable-diffusion-x4-upscaler"
-
 
 def load_pickle(file_path: Path) -> object:
     """

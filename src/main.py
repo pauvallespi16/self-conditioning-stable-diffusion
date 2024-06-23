@@ -35,7 +35,7 @@ def generate(
         negative_dataset_path=negative_dataset_path,
         device=DEVICE,
     )
-    dataloader = DataLoader(dataset, batch_size=8, shuffle=False)
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
 
     sd = StableDiffusionWrapper(
         model_name=SD_MODEL_NAME,

@@ -44,7 +44,7 @@ class StableDiffusionWrapper(ModelWrapper):
         )
         self.activations = {}
         self.sd = DiffusionPipeline.from_pretrained(self.model_name)
-        self.sd.to(self.device)
+        self.sd.enable_model_cpu_offload()
         self.sd.set_progress_bar_config(disable=True)
         self.text_encoder = self.sd.text_encoder
         self.tokenizer = self.sd.tokenizer
