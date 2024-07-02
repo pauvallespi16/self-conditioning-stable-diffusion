@@ -5,7 +5,7 @@ from typing import Dict, List, Tuple, Union
 import torch
 from torch.utils.data import DataLoader
 
-from custom_dataset import CustomDataset, CustomMultipleDataset
+from custom_dataset import MultipleSentenceDataset, SentenceDataset
 from metrics import compute_auroc, compute_average_precision
 from utils import *
 from wrapper import Process
@@ -30,10 +30,9 @@ def generate(
 ]:
     torch.manual_seed(42)
 
-    dataset = CustomMultipleDataset(
+    dataset = MultipleSentenceDataset(
         positive_dataset_path=positive_dataset_path,
         negative_dataset_path=negative_dataset_path,
-        device=DEVICE,
     )
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
 
@@ -60,12 +59,13 @@ def evaluate(
     dataset_path: Path,
     activations: Union[Dict[str, List[float]], Path],
     layer_scores: Union[Dict[str, List[float]], Path],
+    threshold: float = 0.75,
     output_images_folder: Path = None,
 ):
     activations = load_pickle(activations)
     layer_scores = load_pickle(layer_scores)
 
-    dataset = CustomDataset(dataset_path, device=DEVICE)
+    dataset = SentenceDataset(dataset_path)
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
 
     sd = StableDiffusionWrapper(
@@ -76,7 +76,25 @@ def evaluate(
         output_images_folder=output_images_folder,
     )
 
-    sd.register_hooks(sd.text_encoder, layer_scores)
+    sd.register_hooks(sd.text_encoder, layer_scores, threshold)
+    sd.inference(dataloader)
+
+
+def inference(
+    dataset_path: Path,
+    output_images_folder: Path = None,
+):
+    dataset = SentenceDataset(dataset_path)
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
+
+    sd = StableDiffusionWrapper(
+        model_name=SD_MODEL_NAME,
+        layers=SD_LAYERS,
+        device=DEVICE,
+        process=Process.EVALUATION,
+        output_images_folder=output_images_folder,
+    )
+
     sd.inference(dataloader)
 
 
@@ -103,7 +121,7 @@ def add_args(parser: ArgumentParser):
         "--process",
         type=str,
         default="generation",
-        choices=["generation", "evaluation", "both"],
+        choices=["generation", "evaluation", "generation_evaluation", "inference"],
         help="The process to run.",
     )
     parser.add_argument(
@@ -119,6 +137,12 @@ def add_args(parser: ArgumentParser):
         default="max",
         choices=["max", "mean", "median"],
         help="The aggregation type for the activations.",
+    )
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=0.75,
+        help="The threshold for the layer scores.",
     )
     parser.add_argument(
         "--activations_path",
@@ -151,11 +175,12 @@ if __name__ == "__main__":
     process = args.process
     score_type = args.score_type
     aggregation_type = args.aggregation_type
+    threshold = args.threshold
     activations_path = args.activations_path
     layer_scores_path = args.layer_scores_path
     output_images_folder = args.output_images_folder
 
-    if process == "both":
+    if process == "generation_evaluation":
         activations, layer_scores = generate(
             positive_dataset_path,
             negative_dataset_path,
@@ -168,6 +193,7 @@ if __name__ == "__main__":
             inference_dataset_path,
             activations=activations,
             layer_scores=layer_scores,
+            threshold=threshold,
             output_images_folder=output_images_folder,
         )
 
@@ -186,5 +212,9 @@ if __name__ == "__main__":
             inference_dataset_path,
             activations=activations_path,
             layer_scores=layer_scores_path,
+            threshold=threshold,
             output_images_folder=output_images_folder,
         )
+
+    else:
+        inference(inference_dataset_path, output_images_folder=output_images_folder)

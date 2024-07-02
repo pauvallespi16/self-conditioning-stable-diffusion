@@ -6,22 +6,20 @@ from torch.utils.data import Dataset
 random.seed(42)
 
 
-class CustomDataset(Dataset):
+class SentenceDataset(Dataset):
     """
-    A custom dataset class for handling sentences and labels.
+    A custom dataset class for handling sentences.
 
     Args:
         sentences_path (Path): The path to the file containing the sentences.
-        device (str): The device to use for processing the data.
 
     Attributes:
-        device (str): The device to use for processing the data.
         sentences (list): A list of sentences.
         labels (list): A list of labels.
     """
 
-    def __init__(self, sentences_path: Path, device: str):
-        self.device = device
+    def __init__(self, sentences_path: Path):
+        super().__init__()
         with open(sentences_path, "r") as f:
             self.sentences = f.read().split("\n")
             random.shuffle(self.sentences)
@@ -34,24 +32,20 @@ class CustomDataset(Dataset):
         return self.sentences[idx], self.labels[idx]
 
 
-class CustomMultipleDataset(CustomDataset):
+class MultipleSentenceDataset(SentenceDataset):
     """
-    A custom dataset class for handling multiple datasets.
+    A custom dataset class for handling multiple sentences.
 
     Args:
         positive_dataset_path (Path): The path to the positive dataset file.
         negative_dataset_path (Path): The path to the negative dataset file.
-        device (str): The device to be used for processing the dataset.
 
     Attributes:
         sentences (list): A list of sentences from the combined dataset.
         labels (list): A list of labels corresponding to the sentences.
     """
 
-    def __init__(
-        self, positive_dataset_path: Path, negative_dataset_path: Path, device: str
-    ):
-        self.device = device
+    def __init__(self, positive_dataset_path: Path, negative_dataset_path: Path):
         with open(positive_dataset_path, "r") as f:
             positive_sentences = f.read().split("\n")
             positive_labels = [1] * len(positive_sentences)

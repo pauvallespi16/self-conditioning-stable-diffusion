@@ -1,7 +1,7 @@
 import pickle
 from functools import reduce
 from pathlib import Path
-from typing import List, Tuple
+from typing import Any, List, Tuple
 
 import torch
 from PIL.Image import Image
@@ -10,6 +10,12 @@ from PIL.Image import Image
 GENERATION_STRING = "Generating activations..."
 EVALUATION_STRING = "Generating images..."
 
+"""
+- Stable Diffusion 1.1: `CompVis/stable-diffusion-v1-1`
+- Stable Diffusion 1.5: `runwayml/stable-diffusion-v1-5`
+- Stable Diffusion 2.0: `stabilityai/stable-diffusion-2`
+- Stable Diffusion XL 1.0: `stabilityai/stable-diffusion-xl-base-1.0`
+"""
 SD_MODEL_NAME = "runwayml/stable-diffusion-v1-5"
 SD_LAYERS = [
     f"text_model.encoder.layers.{i}.layer_norm{j}"
@@ -17,7 +23,8 @@ SD_LAYERS = [
     for j in range(1, 3)
 ]
 
-def load_pickle(file_path: Path) -> object:
+
+def load_pickle(file_path: Any) -> object:
     """
     Loads and returns the object stored in a pickle file.
 
@@ -30,6 +37,8 @@ def load_pickle(file_path: Path) -> object:
     if isinstance(file_path, Path) or isinstance(file_path, str):
         with open(file_path, "rb") as f:
             return pickle.load(f)
+
+    return file_path
 
 
 def save_pickle(data: any, file_path: Path):
