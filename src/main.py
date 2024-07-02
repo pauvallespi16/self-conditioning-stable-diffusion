@@ -80,7 +80,7 @@ def evaluate(
     sd.inference(dataloader)
 
 
-def inference(
+def infer(
     dataset_path: Path,
     output_images_folder: Path = None,
 ):
@@ -217,4 +217,4 @@ if __name__ == "__main__":
         )
 
     else:
-        inference(inference_dataset_path, output_images_folder=output_images_folder)
+        infer(inference_dataset_path, output_images_folder=output_images_folder)
