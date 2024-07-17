@@ -3,12 +3,15 @@ import subprocess
 import time
 from argparse import ArgumentParser
 from pathlib import Path
+from typing import List
 
 import pandas as pd
 
 from clip import evaluate_images
 
-VERSIONS = ["1-1", "1-5", "2", "xl_1-0"]
+IMAGES_PATH = Path("images")
+
+VERSIONS = ["1.1", "1.5", "2.0", "xl_1-0"]
 THRESHOLDS = [0.5, 0.6, 0.7, 0.8, 0.9]
 
 
@@ -47,53 +50,59 @@ def send_job(script_name: str, version: str, threshold: float) -> str:
 
     script = script.replace(f"${{{'VERSION'}}}", str(version))
     script = script.replace(f"${{{'THRESHOLD'}}}", str(threshold))
+    tmp_script_name = f"{script_name}_tmp.sh"
 
-    with open(f"{script_name}_tmp.sh", "w") as file:
+    with open(tmp_script_name, "w") as file:
         file.write(script)
 
-    job_id = submit_job(f"{script_name}_tmp.sh")
+    job_id = submit_job(tmp_script_name)
+    os.remove(tmp_script_name)
     return job_id
 
 
 def run_sd():
     for version in VERSIONS:
         for threshold in THRESHOLDS:
-            job_id = send_job("pipeline", version, threshold)
+            script_name = "template"
+            job_id = send_job(script_name, version, threshold)
             wait_for_job_completion(job_id)
 
-    os.remove("pipeline_tmp.sh")
 
-
-def run_clip():
+def run_clip(labels: List[str], clip_folder: str):
     dataframe = []
+    percentages_strings = [
+        f"% {label} in {suffix}"
+        for label in labels
+        for suffix in ["Original", "Output"]
+    ]
     for version in VERSIONS:
+        original_path = Path(f"images/{clip_folder}-sd_{version}/original")
         for threshold in THRESHOLDS:
-            original_path = Path(
-                f"images/without_pink_elephant-sd_{version}_{threshold}/original"
-            )
-            output_path = Path(
-                f"images/without_pink_elephant-sd_{version}_{threshold}/output"
-            )
-            original_percentage, output_percentage = evaluate_images(
-                original_path, output_path
-            )
+            output_path = Path(f"images/{clip_folder}-sd_{version}/{threshold}")
+            (
+                percentages,
+                original_clip_score,
+                output_clip_score,
+            ) = evaluate_images(original_path, output_path)
+
             dataframe.append(
                 [
-                    version.replace("-", "."),
+                    version,
                     threshold,
-                    original_percentage,
-                    output_percentage,
-                ]
+                    # original_clip_score,
+                    # output_clip_score,
+                ].extend(percentages)
             )
+
 
     df = pd.DataFrame(
         dataframe,
         columns=[
             "Stable Diffusion Version",
             "Threshold",
-            "% Pink Elephants in Original",
-            "% Pink Elephants in Output",
-        ],
+            # "Original CLIP Score",
+            # "Output CLIP Score",
+        ].extend(percentages_strings),
     )
     df.to_csv("clip_results.csv", index=False)
 
@@ -106,6 +115,18 @@ def add_args(parser: ArgumentParser):
         choices=["sd", "clip"],
         help="The process to run.",
     )
+    parser.add_argument(
+        "--labels",
+        type=list,
+        default=["Pink Elephant", "Something Else"],
+        help="The labels for zero-shot classification.",
+    )
+    parser.add_argument(
+        "--clip_folder",
+        type=str,
+        default="without_pink_elephant",
+        help="The folder name for CLIP evaluation.",
+    )
 
 
 if __name__ == "__main__":
@@ -116,4 +137,4 @@ if __name__ == "__main__":
     if args.process == "sd":
         run_sd()
     else:
-        run_clip()
+        run_clip(args.labels, args.clip_folder)

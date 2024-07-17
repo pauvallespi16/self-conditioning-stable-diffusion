@@ -92,11 +92,21 @@ class StableDiffusionWrapper(ModelWrapper):
         """
         layer_scores = args[0]
         threshold = args[1] if len(args) > 1 else 0.8
+        divide_by_score = args[2] if len(args) > 2 else False
 
         def hook_fn(module, input, output):
             module_name = self.module_to_name[module]
             mask = layer_scores[module_name] > threshold
-            output[:, :, mask] = 0
+            output[:, :, mask] = (
+                torch.tensor(
+                    output[:, :, mask].cpu().numpy() / layer_scores[module_name][mask],
+                    device=output.device,
+                    dtype=output.dtype,
+                )
+                if divide_by_score
+                else 0
+            )
+
             return output
 
         return hook_fn

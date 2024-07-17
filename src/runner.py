@@ -18,6 +18,7 @@ SCORES_DICT = {"auroc": compute_auroc, "ap": compute_average_precision}
 
 
 def generate(
+    model_version: str,
     positive_dataset_path: Path,
     negative_dataset_path: Path,
     score_type: str = "auroc",
@@ -37,7 +38,7 @@ def generate(
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
 
     sd = StableDiffusionWrapper(
-        model_name=SD_MODEL_NAME,
+        model_name=SD_VERSION_TO_MODEL[model_version],
         layers=SD_LAYERS,
         device=DEVICE,
         aggregation_type=aggregation_type,
@@ -56,6 +57,7 @@ def generate(
 
 
 def evaluate(
+    model_version: str,
     dataset_path: Path,
     activations: Union[Dict[str, List[float]], Path],
     layer_scores: Union[Dict[str, List[float]], Path],
@@ -69,7 +71,7 @@ def evaluate(
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
 
     sd = StableDiffusionWrapper(
-        model_name=SD_MODEL_NAME,
+        model_name=SD_VERSION_TO_MODEL[model_version],
         layers=SD_LAYERS,
         device=DEVICE,
         process=Process.EVALUATION,
@@ -81,6 +83,7 @@ def evaluate(
 
 
 def infer(
+    model_version: str,
     dataset_path: Path,
     output_images_folder: Path = None,
 ):
@@ -88,7 +91,7 @@ def infer(
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
 
     sd = StableDiffusionWrapper(
-        model_name=SD_MODEL_NAME,
+        model_name=SD_VERSION_TO_MODEL[model_version],
         layers=SD_LAYERS,
         device=DEVICE,
         process=Process.EVALUATION,
@@ -99,6 +102,19 @@ def infer(
 
 
 def add_args(parser: ArgumentParser):
+    parser.add_argument(
+        "--model_version",
+        type=str,
+        default="1.1",
+        choices=["1.1", "1.5", "2.0", "xl-1.0"],
+    )
+    parser.add_argument(
+        "--process",
+        type=str,
+        default="generation",
+        choices=["generation", "evaluation", "generation_evaluation", "inference"],
+        help="The process to run.",
+    )
     parser.add_argument(
         "--positive_dataset_path",
         type=Path,
@@ -116,13 +132,6 @@ def add_args(parser: ArgumentParser):
         type=Path,
         default=DATASET_PATH / "positive_sentences.txt",
         help="The path to the dataset in which to run inference.",
-    )
-    parser.add_argument(
-        "--process",
-        type=str,
-        default="generation",
-        choices=["generation", "evaluation", "generation_evaluation", "inference"],
-        help="The process to run.",
     )
     parser.add_argument(
         "--score_type",
@@ -169,6 +178,7 @@ if __name__ == "__main__":
     add_args(parser)
 
     args = parser.parse_args()
+    model_version = args.model_version
     positive_dataset_path = args.positive_dataset_path
     negative_dataset_path = args.negative_dataset_path
     inference_dataset_path = args.inference_dataset_path
@@ -182,6 +192,7 @@ if __name__ == "__main__":
 
     if process == "generation_evaluation":
         activations, layer_scores = generate(
+            model_version,
             positive_dataset_path,
             negative_dataset_path,
             score_type=score_type,
@@ -190,6 +201,7 @@ if __name__ == "__main__":
             output_layer_scores_path=layer_scores_path,
         )
         evaluate(
+            model_version,
             inference_dataset_path,
             activations=activations,
             layer_scores=layer_scores,
@@ -199,6 +211,7 @@ if __name__ == "__main__":
 
     elif process == "generation":
         generate(
+            model_version,
             positive_dataset_path,
             negative_dataset_path,
             score_type=score_type,
@@ -209,6 +222,7 @@ if __name__ == "__main__":
 
     elif process == "evaluation":
         evaluate(
+            model_version,
             inference_dataset_path,
             activations=activations_path,
             layer_scores=layer_scores_path,
@@ -217,4 +231,8 @@ if __name__ == "__main__":
         )
 
     else:
-        infer(inference_dataset_path, output_images_folder=output_images_folder)
+        infer(
+            model_version,
+            inference_dataset_path,
+            output_images_folder=output_images_folder,
+        )

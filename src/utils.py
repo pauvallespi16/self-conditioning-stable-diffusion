@@ -10,18 +10,17 @@ from PIL.Image import Image
 GENERATION_STRING = "Generating activations..."
 EVALUATION_STRING = "Generating images..."
 
-"""
-- Stable Diffusion 1.1: `CompVis/stable-diffusion-v1-1`
-- Stable Diffusion 1.5: `runwayml/stable-diffusion-v1-5`
-- Stable Diffusion 2.0: `stabilityai/stable-diffusion-2`
-- Stable Diffusion XL 1.0: `stabilityai/stable-diffusion-xl-base-1.0`
-"""
-SD_MODEL_NAME = "runwayml/stable-diffusion-v1-5"
 SD_LAYERS = [
     f"text_model.encoder.layers.{i}.layer_norm{j}"
     for i in range(12)
     for j in range(1, 3)
 ]
+SD_VERSION_TO_MODEL = {
+    "1.1": "CompVis/stable-diffusion-v1-1",
+    "1.5": "runwayml/stable-diffusion-v1-5",
+    "2.0": "stabilityai/stable-diffusion-2",
+    "xl-1.0": "stabilityai/stable-diffusion-xl-base-1.0",
+}
 
 
 def load_pickle(file_path: Any) -> object:
@@ -84,6 +83,9 @@ def save_images(
         sentences (List[Image]): The sentences corresponding to the images.
         image_size (Tuple[int, int], optional): The size to resize the images to. Defaults to (512, 512).
     """
+    if folder is None:
+        return
+
     for i, image in enumerate(images):
         resized_image = image.resize(image_size)
         resized_image.save(folder / f"{sentences[i]}.png")

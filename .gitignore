@@ -168,3 +168,4 @@ logs
 pickles
 *.sh
 plots
+*.csv
