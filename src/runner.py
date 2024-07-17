@@ -62,6 +62,7 @@ def evaluate(
     activations: Union[Dict[str, List[float]], Path],
     layer_scores: Union[Dict[str, List[float]], Path],
     threshold: float = 0.75,
+    divide_by_score: bool = False,
     output_images_folder: Path = None,
 ):
     activations = load_pickle(activations)
@@ -78,7 +79,7 @@ def evaluate(
         output_images_folder=output_images_folder,
     )
 
-    sd.register_hooks(sd.text_encoder, layer_scores, threshold)
+    sd.register_hooks(sd.text_encoder, layer_scores, threshold, divide_by_score)
     sd.inference(dataloader)
 
 
@@ -171,6 +172,11 @@ def add_args(parser: ArgumentParser):
         default=None,
         help="The folder to save output images.",
     )
+    parser.add_argument(
+        "--divide_by_score",
+        action="store_true",
+        help="Whether to divide the activations by the scores.",
+    )
 
 
 if __name__ == "__main__":
@@ -189,6 +195,7 @@ if __name__ == "__main__":
     activations_path = args.activations_path
     layer_scores_path = args.layer_scores_path
     output_images_folder = args.output_images_folder
+    divide_by_score = args.divide_by_score
 
     if process == "generation_evaluation":
         activations, layer_scores = generate(
@@ -206,6 +213,7 @@ if __name__ == "__main__":
             activations=activations,
             layer_scores=layer_scores,
             threshold=threshold,
+            divide_by_score=divide_by_score,
             output_images_folder=output_images_folder,
         )
 
@@ -227,6 +235,7 @@ if __name__ == "__main__":
             activations=activations_path,
             layer_scores=layer_scores_path,
             threshold=threshold,
+            divide_by_score=divide_by_score,
             output_images_folder=output_images_folder,
         )
 
