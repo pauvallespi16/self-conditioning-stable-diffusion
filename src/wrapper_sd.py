@@ -55,7 +55,6 @@ class StableDiffusionWrapper(ModelWrapper):
         self.text_encoder.eval()
         self.sequence_length = sequence_length
         self.aggregation_type = aggregation_type
-        self.metadata = {}
 
     def generation_hook(self, *args):
         """
