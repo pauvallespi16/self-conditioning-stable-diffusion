@@ -33,6 +33,7 @@ class StableDiffusionWrapper(ModelWrapper):
         process: Process,
         sequence_length: int = 50,
         aggregation_type: str = "max",
+        threshold: float = 0.8,
         output_images_folder: Path = None,
     ):
         super().__init__(
@@ -43,7 +44,10 @@ class StableDiffusionWrapper(ModelWrapper):
             output_images_folder=output_images_folder,
         )
         self.activations = {}
-        self.sd = DiffusionPipeline.from_pretrained(self.model_name)
+        self.sd = DiffusionPipeline.from_pretrained(
+            self.model_name, torch_dtype=torch.float16, variant="fp16"
+        )
+        self.threshold = threshold
         self.sd.enable_model_cpu_offload()
         self.sd.set_progress_bar_config(disable=True)
         self.text_encoder = self.sd.text_encoder
@@ -51,6 +55,7 @@ class StableDiffusionWrapper(ModelWrapper):
         self.text_encoder.eval()
         self.sequence_length = sequence_length
         self.aggregation_type = aggregation_type
+        self.metadata = {}
 
     def generation_hook(self, *args):
         """
@@ -91,22 +96,12 @@ class StableDiffusionWrapper(ModelWrapper):
 
         """
         layer_scores = args[0]
-        threshold = args[1] if len(args) > 1 else 0.8
-        divide_by_score = args[2] if len(args) > 2 else False
 
         def hook_fn(module, input, output):
             module_name = self.module_to_name[module]
-            mask = layer_scores[module_name] > threshold
-            output[:, :, mask] = (
-                torch.tensor(
-                    output[:, :, mask].cpu().numpy() / layer_scores[module_name][mask],
-                    device=output.device,
-                    dtype=output.dtype,
-                )
-                if divide_by_score
-                else 0
-            )
-
+            mask = layer_scores[module_name] > self.threshold
+            self.metadata[module_name] = 100 * mask.sum() / mask.size
+            output[:, :, mask] = 0
             return output
 
         return hook_fn
@@ -292,12 +287,13 @@ class StableDiffusionWrapper(ModelWrapper):
         activations_dict = self._aggregate_activations(activations_dict)
         return activations_dict, targets
 
-    def inference(self, dataloader: DataLoader):
+    def inference(self, dataloader: DataLoader, save_metadata: bool = False):
         """
         Generates images using the Stable Diffusion model.
 
         Args:
             dataloader (DataLoader): DataLoader for the dataset.
+            save_metadata (bool, optional): Whether to save metadata. Defaults to False.
         """
         desc = EVALUATION_STRING
 
@@ -305,3 +301,9 @@ class StableDiffusionWrapper(ModelWrapper):
             sentences = list(prompts)
             output = self.sd(prompt=sentences, height=512, width=512).images
             save_images(self.output_images_folder, output, sentences)
+
+        if save_metadata:
+            save_json(
+                f"metadata/sd_{self.model_name.split('/')[-1]}_{self.threshold}.json",
+                self.metadata,
+            )

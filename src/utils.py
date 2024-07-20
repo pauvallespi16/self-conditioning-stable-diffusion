@@ -1,3 +1,4 @@
+import json
 import pickle
 from functools import reduce
 from pathlib import Path
@@ -89,3 +90,15 @@ def save_images(
     for i, image in enumerate(images):
         resized_image = image.resize(image_size)
         resized_image.save(folder / f"{sentences[i]}.png")
+
+
+def save_json(path: str, data: dict):
+    """
+    Saves the given data as a JSON file.
+
+    Args:
+        path (str): The path to save the JSON file.
+        data (dict): The data to be saved.
+    """
+    with open(path, "w") as f:
+        json.dump(data, f, indent=4)

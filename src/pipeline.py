@@ -11,7 +11,7 @@ from clip import evaluate_images
 
 IMAGES_PATH = Path("images")
 
-VERSIONS = ["1.1", "1.5", "2.0", "xl_1-0"]
+VERSIONS = ["1.1", "1.5", "2.0", "xl-1.0"]
 THRESHOLDS = [0.5, 0.6, 0.7, 0.8, 0.9]
 
 
@@ -79,32 +79,19 @@ def run_clip(labels: List[str], clip_folder: str):
         original_path = Path(f"images/{clip_folder}-sd_{version}/original")
         for threshold in THRESHOLDS:
             output_path = Path(f"images/{clip_folder}-sd_{version}/{threshold}")
-            (
-                percentages,
-                original_clip_score,
-                output_clip_score,
-            ) = evaluate_images(original_path, output_path)
-
-            dataframe.append(
-                [
-                    version,
-                    threshold,
-                    # original_clip_score,
-                    # output_clip_score,
-                ].extend(percentages)
+            percentages, score_original, score_output = evaluate_images(
+                original_path, output_path, labels
             )
-
+            dataframe.append(
+                [version, threshold, score_original, score_output] + percentages[:-2]
+            )
 
     df = pd.DataFrame(
         dataframe,
-        columns=[
-            "Stable Diffusion Version",
-            "Threshold",
-            # "Original CLIP Score",
-            # "Output CLIP Score",
-        ].extend(percentages_strings),
+        columns=["Version", "Threshold", "CLIP Score Original", "CLIP Score Output"]
+        + percentages_strings[:-2],
     )
-    df.to_csv("clip_results.csv", index=False)
+    df.to_csv(f"results/{clip_folder}_{len(labels)}_labels.csv", index=False)
 
 
 def add_args(parser: ArgumentParser):

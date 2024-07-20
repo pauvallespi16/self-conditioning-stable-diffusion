@@ -35,10 +35,11 @@ def generate(
         positive_dataset_path=positive_dataset_path,
         negative_dataset_path=negative_dataset_path,
     )
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
+    dataloader = DataLoader(dataset, batch_size=8, shuffle=False)
+    model_name = SD_VERSION_TO_MODEL[model_version]
 
     sd = StableDiffusionWrapper(
-        model_name=SD_VERSION_TO_MODEL[model_version],
+        model_name=model_name,
         layers=SD_LAYERS,
         device=DEVICE,
         aggregation_type=aggregation_type,
@@ -62,25 +63,27 @@ def evaluate(
     activations: Union[Dict[str, List[float]], Path],
     layer_scores: Union[Dict[str, List[float]], Path],
     threshold: float = 0.75,
-    divide_by_score: bool = False,
     output_images_folder: Path = None,
+    save_metadata: bool = False,
 ):
     activations = load_pickle(activations)
     layer_scores = load_pickle(layer_scores)
 
     dataset = SentenceDataset(dataset_path)
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
+    dataloader = DataLoader(dataset, batch_size=8, shuffle=False)
+    model_name = SD_VERSION_TO_MODEL[model_version]
 
     sd = StableDiffusionWrapper(
-        model_name=SD_VERSION_TO_MODEL[model_version],
+        model_name=model_name,
         layers=SD_LAYERS,
         device=DEVICE,
         process=Process.EVALUATION,
+        threshold=threshold,
         output_images_folder=output_images_folder,
     )
 
-    sd.register_hooks(sd.text_encoder, layer_scores, threshold, divide_by_score)
-    sd.inference(dataloader)
+    sd.register_hooks(sd.text_encoder, layer_scores)
+    sd.inference(dataloader, save_metadata=save_metadata)
 
 
 def infer(
@@ -89,10 +92,11 @@ def infer(
     output_images_folder: Path = None,
 ):
     dataset = SentenceDataset(dataset_path)
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
+    dataloader = DataLoader(dataset, batch_size=8, shuffle=False)
+    model_name = SD_VERSION_TO_MODEL[model_version]
 
     sd = StableDiffusionWrapper(
-        model_name=SD_VERSION_TO_MODEL[model_version],
+        model_name=model_name,
         layers=SD_LAYERS,
         device=DEVICE,
         process=Process.EVALUATION,
@@ -173,9 +177,9 @@ def add_args(parser: ArgumentParser):
         help="The folder to save output images.",
     )
     parser.add_argument(
-        "--divide_by_score",
+        "--save_metadata",
         action="store_true",
-        help="Whether to divide the activations by the scores.",
+        help="Boolean flag indicating whether to save metadata.",
     )
 
 
@@ -195,7 +199,7 @@ if __name__ == "__main__":
     activations_path = args.activations_path
     layer_scores_path = args.layer_scores_path
     output_images_folder = args.output_images_folder
-    divide_by_score = args.divide_by_score
+    save_metadata = args.save_metadata
 
     if process == "generation_evaluation":
         activations, layer_scores = generate(
@@ -213,8 +217,8 @@ if __name__ == "__main__":
             activations=activations,
             layer_scores=layer_scores,
             threshold=threshold,
-            divide_by_score=divide_by_score,
             output_images_folder=output_images_folder,
+            save_metadata=save_metadata,
         )
 
     elif process == "generation":
@@ -235,8 +239,8 @@ if __name__ == "__main__":
             activations=activations_path,
             layer_scores=layer_scores_path,
             threshold=threshold,
-            divide_by_score=divide_by_score,
             output_images_folder=output_images_folder,
+            save_metadata=save_metadata,
         )
 
     else:

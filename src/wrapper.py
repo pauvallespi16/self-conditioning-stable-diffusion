@@ -52,6 +52,7 @@ class ModelWrapper:
             Process.GENERATION: self.generation_hook,
             Process.EVALUATION: self.evaluation_hook,
         }
+        self.metadata = {}
         if self.output_images_folder:
             os.makedirs(output_images_folder, exist_ok=True)
 
@@ -108,11 +109,12 @@ class ModelWrapper:
         """
         pass
 
-    def inference(self, dataloader: DataLoader):
+    def inference(self, dataloader: DataLoader, save_metadata: bool = False):
         """
         Generates images from the data given as input.
 
         Args:
             dataloader (DataLoader): DataLoader for the dataset.
+            save_metadata (bool, optional): Whether to save metadata. Defaults to False.
         """
         pass

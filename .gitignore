@@ -169,3 +169,5 @@ pickles
 *.sh
 plots
 *.csv
+metadata
+results
