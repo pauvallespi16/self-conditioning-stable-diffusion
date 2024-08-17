@@ -8,11 +8,13 @@ from typing import List
 import pandas as pd
 
 from clip import evaluate_images
+from plots import Plots
 
 IMAGES_PATH = Path("images")
 
 VERSIONS = ["1.1", "1.5", "2.0", "xl-1.0"]
 THRESHOLDS = [0.5, 0.6, 0.7, 0.8, 0.9]
+TEMPLATE_SCRIPT = "template"
 
 
 def submit_job(script_filename: str) -> str:
@@ -63,8 +65,7 @@ def send_job(script_name: str, version: str, threshold: float) -> str:
 def run_sd():
     for version in VERSIONS:
         for threshold in THRESHOLDS:
-            script_name = "template"
-            job_id = send_job(script_name, version, threshold)
+            job_id = send_job(TEMPLATE_SCRIPT, version, threshold)
             wait_for_job_completion(job_id)
 
 
@@ -83,15 +84,17 @@ def run_clip(labels: List[str], clip_folder: str):
                 original_path, output_path, labels
             )
             dataframe.append(
-                [version, threshold, score_original, score_output] + percentages[:-2]
+                [version, threshold, score_original, score_output] + percentages
             )
 
     df = pd.DataFrame(
         dataframe,
         columns=["Version", "Threshold", "CLIP Score Original", "CLIP Score Output"]
-        + percentages_strings[:-2],
+        + percentages_strings,
     )
     df.to_csv(f"results/{clip_folder}_{len(labels)}_labels.csv", index=False)
+    plots = Plots(f"{clip_folder}_{len(labels)}_labels", labels[0], labels[1])
+    plots.run_plots()
 
 
 def add_args(parser: ArgumentParser):
@@ -105,7 +108,7 @@ def add_args(parser: ArgumentParser):
     parser.add_argument(
         "--labels",
         type=list,
-        default=["Pink Elephant", "Something Else"],
+        default=["Man", "Woman", "Something else"],
         help="The labels for zero-shot classification.",
     )
     parser.add_argument(
@@ -123,5 +126,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.process == "sd":
         run_sd()
+    elif args.process == "clip":
+        run_clip(args.labels, args.clip_folder)
     else:
+        run_sd()
         run_clip(args.labels, args.clip_folder)

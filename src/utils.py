@@ -1,3 +1,4 @@
+import os
 import json
 import pickle
 from functools import reduce
@@ -50,6 +51,7 @@ def save_pickle(data: any, file_path: Path):
         file_path (Path): The path to save the pickle file.
     """
     if file_path is not None:
+        os.makedirs(file_path.parent, exist_ok=True)
         with open(file_path, "wb") as f:
             pickle.dump(data, f)
 

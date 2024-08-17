@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Union
 
 import torch
 from torch.utils.data import DataLoader
@@ -25,10 +25,7 @@ def generate(
     aggregation_type: str = "max",
     output_activations_path: Path = None,
     output_layer_scores_path: Path = None,
-) -> Tuple[
-    Dict[str, Tuple[List[float], List[float]]],
-    Dict[str, Dict[str, List[float]]],
-]:
+) -> Dict[str, Dict[str, List[float]]]:
     torch.manual_seed(42)
 
     dataset = MultipleSentenceDataset(
@@ -54,19 +51,17 @@ def generate(
     layer_scores = layer_score_function(activations, labels)
     save_pickle(layer_scores, output_layer_scores_path)
 
-    return activations, layer_scores
+    return layer_scores
 
 
 def evaluate(
     model_version: str,
     dataset_path: Path,
-    activations: Union[Dict[str, List[float]], Path],
     layer_scores: Union[Dict[str, List[float]], Path],
     threshold: float = 0.75,
     output_images_folder: Path = None,
     save_metadata: bool = False,
 ):
-    activations = load_pickle(activations)
     layer_scores = load_pickle(layer_scores)
 
     dataset = SentenceDataset(dataset_path)
@@ -202,7 +197,7 @@ if __name__ == "__main__":
     save_metadata = args.save_metadata
 
     if process == "generation_evaluation":
-        activations, layer_scores = generate(
+        layer_scores = generate(
             model_version,
             positive_dataset_path,
             negative_dataset_path,
@@ -214,7 +209,6 @@ if __name__ == "__main__":
         evaluate(
             model_version,
             inference_dataset_path,
-            activations=activations,
             layer_scores=layer_scores,
             threshold=threshold,
             output_images_folder=output_images_folder,
@@ -236,7 +230,6 @@ if __name__ == "__main__":
         evaluate(
             model_version,
             inference_dataset_path,
-            activations=activations_path,
             layer_scores=layer_scores_path,
             threshold=threshold,
             output_images_folder=output_images_folder,

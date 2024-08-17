@@ -301,8 +301,8 @@ class StableDiffusionWrapper(ModelWrapper):
             output = self.sd(prompt=sentences, height=512, width=512).images
             save_images(self.output_images_folder, output, sentences)
 
-        if save_metadata:
+        if save_metadata and self.process != Process.EVALUATION:
             save_json(
-                f"metadata/sd_{self.model_name.split('/')[-1]}_{self.threshold}.json",
+                f"metadata/{self.model_name.split('/')[-1]}_{self.threshold}.json",
                 self.metadata,
             )

@@ -48,7 +48,7 @@ class CLIP:
         """
         return self.clip(input, candidate_labels=self.labels)
 
-    def score(self, images_path: Path) -> List[float]:
+    def score(self, images_path: Path, batch_size: int = 8) -> List[float]:
         """
         Scores the images in the given path.
 
@@ -58,21 +58,26 @@ class CLIP:
         Returns:
             List[float]: A list of scores for the images.
         """
-        metric = CLIPScore(model_name_or_path=CLIP_MODEL_NAME)
+        metric = CLIPScore(
+            model_name_or_path=CLIP_MODEL_NAME,
+            compute_on_cpu=True,
+            compute_with_cache=True,
+        )
         metric.to(DEVICE)
         paths = list(images_path.glob("*"))
 
-        images = [
-            torch.from_numpy(np.array(Image.open(image))).permute(2, 0, 1).to(DEVICE)
-            for image in paths
-        ]
-        prompts = [str(prompt).split(".")[0] for prompt in paths]
-
-        for i in range(0, len(images), 8):
-            metric.update(
-                images[i : min(i + 8, len(images))],
-                prompts[i : min(i + 8, len(prompts))],
+        for i in range(0, len(paths), batch_size):
+            images = torch.stack(
+                [
+                    torch.from_numpy(np.array(Image.open(image)))
+                    .permute(2, 0, 1)
+                    .to(DEVICE)
+                    for image in paths[i : min(i + batch_size, len(paths))]
+                ]
             )
+            prompts = [f"An image of a {self.labels[0]}"] * len(images)
+            metric.update(images, prompts)
+            torch.cuda.empty_cache()
 
         return metric.compute().detach().cpu().numpy()
 
@@ -116,7 +121,7 @@ def evaluate_images(
                 concept_count[i + 1] += output_predictions[0]["label"] == labels[i // 2]
 
         except Exception as e:
-            print(f"ERROR: Processing {original} and {output}. {e}")
+            print(f"ERROR: Processing {original} and {output} with exception: {e}")
 
         pbar.update(1)
 
