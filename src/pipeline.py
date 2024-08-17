@@ -108,7 +108,7 @@ def add_args(parser: ArgumentParser):
     parser.add_argument(
         "--labels",
         type=list,
-        default=["Man", "Woman", "Something else"],
+        default=["Man", "Woman", "Person", "People", "Something else"],
         help="The labels for zero-shot classification.",
     )
     parser.add_argument(

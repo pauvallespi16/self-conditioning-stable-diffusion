@@ -1,6 +1,8 @@
 import os
+from typing import List
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
 
@@ -127,20 +129,47 @@ class Plots:
         plt.grid(True)
         plt.savefig(f"plots/{self.filename}/violinplot.png")
 
+    def plot_gender_difference(self, df: pd.DataFrame, labels: List[str]):
+        versions = df["Version"].unique()
+        fig_width = 8 + len(labels)
+        for label in labels:
+            df[f"{label} Difference"] = (
+                df[f"% {label} in Output"] - df[f"% {label} in Original"]
+            )
+
+        for version in versions:
+            df_version = df[df["Version"] == version]
+
+            _, ax = plt.subplots(figsize=(fig_width, 6))
+            bar_width = 0.8 / len(labels)
+            index = np.arange(len(df_version))
+            default_colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+            for i, label in enumerate(labels):
+                ax.bar(
+                    index + i * bar_width,
+                    df_version[f"{label} Difference"],
+                    bar_width,
+                    label=f"{label} Difference",
+                    color=default_colors[i],
+                )
+
+            ax.set_xlabel("Threshold")
+            ax.set_ylabel("Difference")
+            ax.set_title(f"Differences in Original and Output for Version {version}")
+            ax.set_xticks(index + bar_width / 2)
+            ax.set_xticklabels(df_version["Threshold"], rotation=45, ha="right")
+            ax.legend()
+
+            plt.tight_layout()
+            plt.show()
+            plt.savefig(f"plots/{self.filename}/difference_plot_{version}.png")
+
     def run_plots(self):
         df = pd.read_csv(f"results/{self.filename}.csv")
         os.makedirs(f"plots/{self.filename}", exist_ok=True)
-
         self.plot_lineplot(df)
         self.plot_scatterplot(df)
         self.plot_barplot(df)
         self.plot_boxplot(df)
         self.plot_violinplot(df)
-
-
-if __name__ == "__main__":
-    primary_concept = "Pink Elephant"
-    secondary_concept = "Something Else"
-    filename = "without_pink_elephant_3_labels"
-    plots = Plots(filename, primary_concept, secondary_concept)
-    plots.run_plots()
+        # self.plot_gender_difference(df, labels=[...])

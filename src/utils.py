@@ -1,5 +1,5 @@
-import os
 import json
+import os
 import pickle
 from functools import reduce
 from pathlib import Path
