@@ -93,7 +93,7 @@ def run_clip(labels: List[str], clip_folder: str):
         + percentages_strings,
     )
     df.to_csv(f"results/{clip_folder}_{len(labels)}_labels.csv", index=False)
-    plots = Plots(f"{clip_folder}_{len(labels)}_labels", labels[0], labels[1])
+    plots = Plots(f"{clip_folder}_{len(labels)}_labels", labels)
     plots.run_plots()
 
 
@@ -108,7 +108,7 @@ def add_args(parser: ArgumentParser):
     parser.add_argument(
         "--labels",
         type=list,
-        default=["Man", "Woman", "Person", "People", "Something else"],
+        default=["Pink elephant", "Something else"],
         help="The labels for zero-shot classification.",
     )
     parser.add_argument(

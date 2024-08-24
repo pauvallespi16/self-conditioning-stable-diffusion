@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import List, Tuple, Union
 
+import gc
 import numpy as np
 import torch
 from PIL import Image
@@ -75,9 +76,11 @@ class CLIP:
                     for image in paths[i : min(i + batch_size, len(paths))]
                 ]
             )
-            prompts = [f"An image of a {self.labels[0]}"] * len(images)
-            metric.update(images, prompts)
-            torch.cuda.empty_cache()
+            prompts = [f"An image of {self.labels[0]}"] * len(images)
+            with torch.no_grad():
+                gc.collect()
+                metric.update(images, prompts)
+                torch.cuda.empty_cache()
 
         return metric.compute().detach().cpu().numpy()
 
